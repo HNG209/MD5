@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <vector>
 #include <sstream>
 #include <iomanip>
@@ -81,17 +81,22 @@ string md5(const string& input) {
     uint32_t state[4];
     memcpy(state, INIT_STATE, sizeof(state));
 
+    //add từng byte của input và add thêm bit 1 vào đầu byte sau
     vector<uint8_t> padded;
     padded.insert(padded.end(), input.begin(), input.end());
-    padded.push_back(0x80);
+    padded.push_back(0x80);// 10000000
 
+    //pad các byte còn lại(trừ 8 byte cuối) bằng các byte 0(0x00)
     while ((padded.size() + 8) % 64 != 0) {
         padded.push_back(0);
     }
 
-    uint64_t inputLength = input.size() * 8;
+    //tính toán size của input và pad vào 8 byte cuối
+    uint64_t inputLength = input.size() * 8; //ví dụ input có 5 byte -> length = 5 * 8 = 40
+                                             //40 = 0x28
     for (int i = 0; i < 8; ++i) {
-        padded.push_back((inputLength >> (8 * i)) & 0xFF);
+        //8 byte còn lại = (0x28 0x00 0x00 0x00 0x00 0x00 0x00 0x00)
+        padded.push_back((inputLength >> (8 * i)));
     }
 
     for (size_t i = 0; i < padded.size(); i += 64) {
