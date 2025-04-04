@@ -1,210 +1,112 @@
-#include<iostream>
-#include<vector>
-#include<sstream>
-#include<iomanip>
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+#include <cstring>
 
 using namespace std;
 
-const std::vector<uint32_t> STATES = {
-    0xA3F9C7D2,
-    0x5B8E2F4A,
-    0x9D1FA3E7,
-    0x6C4B8D19
+const uint32_t INIT_STATE[4] = {
+    0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476
 };
 
-const std::vector<uint32_t> K = {//K constants
-    0x3a4f350c,
-    0xa33664f1,
-    0x553a51dc,
-    0x1339b11e,
-    0xdc036618,
-    0x8d53aa42,
-    0x3ca71ad7,
-    0x47a9c83b,
-    0xd5c4dee4,
-    0x6a44b77c,
-    0xfcadeb8f,
-    0x599113d5,
-    0x3594172b,
-    0xe6505c18,
-    0xad02927a,
-    0x2bddf7c7,
-    0xda87d45b,
-    0x00f0b66d,
-    0x9d35b359,
-    0xcd160e20,
-    0x2995d4e4,
-    0xcb4477e9,
-    0xf823226a,
-    0xc93e2c88,
-    0x316db96e,
-    0x31a73ce6,
-    0xe275a150,
-    0x8202df9b,
-    0xc2554359,
-    0xed724160,
-    0x0467bbb7,
-    0xc270074e,
-    0x203f0b8d,
-    0x57f95ca6,
-    0xe5fb3f9e,
-    0xc36f9f80,
-    0xd5dfc164,
-    0xe3aac171,
-    0xfd8c0b23,
-    0x0eaf636f,
-    0x5988db80,
-    0xec38c763,
-    0x2cf1690e,
-    0x4e948808,
-    0x150c9806,
-    0x36db1548,
-    0xebf90440,
-    0x50553cde,
-    0xf61576a6,
-    0xd25086ae,
-    0x62b66878,
-    0x8df9c4cb,
-    0xc1ff4fd3,
-    0x3f6dcaa6,
-    0xa1f08b81,
-    0x1ef34dcb,
-    0xaee773f8,
-    0x18fb2a09,
-    0xf8a73098,
-    0x06ed1d8f,
-    0x18e2d0bb,
-    0x5dfa548b,
-    0x2f6b334d,
-    0xb196a450
-};
-const std::vector<int> r = {//rotation constants
-    35, 6, 2, 5, 22, 34, 4, 13,
-    29, 34, 19, 17, 32, 24, 31, 39,
-    22, 46, 13, 17, 28, 23, 60, 45,
-    50, 40, 41, 50, 35, 14, 61, 6,
-    5, 37, 23, 63, 62, 36, 2, 31,
-    27, 38, 38, 42, 5, 10, 5, 38,
-    53, 19, 20, 16, 33, 39, 3, 36,
-    45, 23, 58, 57, 48, 63, 25, 7
+const uint32_t K[64] = {
+    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 };
 
-std::string hexToString(uint32_t num) {
-    std::ostringstream oss;
-    oss << std::hex << std::setw(8) << std::setfill('0') << num;
-    return oss.str();
+const int R[64] = {
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+};
+
+uint32_t leftRotate(uint32_t x, int c) {
+    return (x << c) | (x >> (32 - c));
 }
 
-std::string stringToHex(const std::string& input) {
-    std::ostringstream oss;
-    for (char c : input) {
-        // Convert each character to a 2-digit hex representation
-        oss << std::hex << std::setw(2) << std::setfill('0') << (int)(unsigned char)c;
-    }
-    return oss.str();
-}
+uint32_t F(uint32_t x, uint32_t y, uint32_t z) { return (x & y) | (~x & z); }
+uint32_t G(uint32_t x, uint32_t y, uint32_t z) { return (x & z) | (y & ~z); }
+uint32_t H(uint32_t x, uint32_t y, uint32_t z) { return x ^ y ^ z; }
+uint32_t I(uint32_t x, uint32_t y, uint32_t z) { return y ^ (x | ~z); }
 
-std::string to512Bits(const std::string& input) {
-    string hex = stringToHex(input);
-    const int totalLength = 128;  // 512 bits = 128 hex characters
-    if (hex.length() >= totalLength) {
-        return hex.substr(0, totalLength);  // Truncate if longer
-    }
-    // Pad with zeros if shorter
-    return hex + std::string(totalLength - hex.length(), '0');
-}
+void processBlock(uint32_t state[4], const uint8_t block[64]) {
+    uint32_t a = state[0], b = state[1], c = state[2], d = state[3];
+    uint32_t M[16];
 
-
-uint32_t rotateLeft(uint32_t value, uint32_t shift) {
-    const uint32_t BITS = sizeof(value) * 8;  // 32 bits
-    shift %= BITS;  // Avoid overflow
-    return (value << shift) | (value >> (BITS - shift));
-}
-
-uint32_t redBox(uint32_t input, uint32_t B, int i) {
-    int result = (rotateLeft(input + K[i], r[i])) + B;
-    return result;
-}
-
-uint32_t F(uint32_t B, uint32_t C, uint32_t D, int i) {
-    if (i >= 0 && i < 16)
-        return (B & C) | (~B & D);
-    else if (i >= 16 && i < 32)
-        return (D & B) | (~D & C);
-    else if (i >= 32 && i < 48)
-        return B ^ C ^ D;//^: XOR
-    return C ^ (B | ~D);
-}
-
-uint32_t combine(uint32_t A, uint32_t B, uint32_t C, uint32_t D, int i, uint32_t iValue) {
-    uint32_t sum = A + F(B, C, D, i) + iValue;
-
-    return redBox(sum, B, i);
-}
-
-std::string MD5(std::string input) {
-    input = to512Bits(input);
-
-    std::vector<uint32_t> segments;
-    uint32_t stateA = STATES[0];
-    uint32_t stateB = STATES[1];
-    uint32_t stateC = STATES[2];
-    uint32_t stateD = STATES[3];
-
-    for (size_t i = 0; i < input.length(); i += 8) {
-        std::string segmentStr = input.substr(i, 8);
-        uint32_t segment;
-
-        std::stringstream ss;
-        ss << std::hex << segmentStr;
-        ss >> segment;
-
-        segments.push_back(segment);
+    for (int i = 0; i < 16; ++i) {
+        M[i] = *(uint32_t*)&block[i * 4];
     }
 
-    uint32_t preStateA = stateA;
-    uint32_t prevStateB = stateB;
-    uint32_t prevStateC = stateC;
-    uint32_t prevStateD = stateD;
-
-    for (int i = 0; i < 64; i++) {
-
+    for (int i = 0; i < 64; ++i) {
+        uint32_t f, g;
         if (i < 16) {
-            stateB = combine(stateA, stateB, stateC, stateD, i, segments[i % 16]);
-            stateA = prevStateD;
-            stateC = prevStateB;
-            stateD = prevStateC;
+            f = F(b, c, d);
+            g = i;
         }
-        else if (i >= 16 && i < 32) {
-            stateB = combine(stateA, stateB, stateC, stateD, i, segments[(5 * i + 1) % 16]);
-            stateA = prevStateD;
-            stateC = prevStateB;
-            stateD = prevStateC;
+        else if (i < 32) {
+            f = G(b, c, d);
+            g = (5 * i + 1) % 16;
         }
-        else if (i >= 32 && i < 48) {
-            stateB = combine(stateA, stateB, stateC, stateD, i, segments[(3 * i + 5) % 16]);
-            stateA = prevStateD;
-            stateC = prevStateB;
-            stateD = prevStateC;
+        else if (i < 48) {
+            f = H(b, c, d);
+            g = (3 * i + 5) % 16;
         }
-        else if (i >= 48 && i < 64) {
-            stateB = combine(stateA, stateB, stateC, stateD, i, segments[(7 * i) % 16]);
-            stateA = prevStateD;
-            stateC = prevStateB;
-            stateD = prevStateC;
+        else {
+            f = I(b, c, d);
+            g = (7 * i) % 16;
         }
 
-        preStateA = stateA;
-        prevStateB = stateB;
-        prevStateC = stateC;
-        prevStateD = stateD;
+        uint32_t temp = d;
+        d = c;
+        c = b;
+        b += leftRotate(a + f + K[i] + M[g], R[i]);
+        a = temp;
     }
 
-    return hexToString(stateA) + hexToString(stateB) + hexToString(stateC) + hexToString(stateD);
+    state[0] += a;
+    state[1] += b;
+    state[2] += c;
+    state[3] += d;
+}
+
+string md5(const string& input) {
+    uint32_t state[4];
+    memcpy(state, INIT_STATE, sizeof(state));
+
+    vector<uint8_t> padded;
+    padded.insert(padded.end(), input.begin(), input.end());
+    padded.push_back(0x80);
+
+    while ((padded.size() + 8) % 64 != 0) {
+        padded.push_back(0);
+    }
+
+    uint64_t inputLength = input.size() * 8;
+    for (int i = 0; i < 8; ++i) {
+        padded.push_back((inputLength >> (8 * i)) & 0xFF);
+    }
+
+    for (size_t i = 0; i < padded.size(); i += 64) {
+        processBlock(state, &padded[i]);
+    }
+
+    ostringstream result;
+    for (int i = 0; i < 4; ++i) {
+        result << hex << setw(8) << setfill('0') << state[i];
+    }
+    return result.str();
 }
 
 int main() {
-    string s = "hello";
-    cout << "MD5 hashed: " << MD5(s);
-	return 0;
+    string input = "hello";
+    cout << "MD5: " << md5(input) << endl;
+    return 0;
 }
